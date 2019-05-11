@@ -10,6 +10,13 @@ import android.os.Bundle;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.model.Document;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -26,10 +33,17 @@ public class MainActivity extends AppCompatActivity {
             //toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,500);
             toneGen1.startTone(ToneGenerator.TONE_DTMF_0,500);
             // Write a message to the database
-            FirebaseDatabase database = FirebaseDatabase.getInstance();
-            DatabaseReference myRef = database.getReference("message");
+            //FirebaseDatabase database = FirebaseDatabase.getInstance();
+            //DatabaseReference myRef = database.getReference();
+            //myRef.setValue("Hello, World!");
 
-            myRef.setValue("Hello, World!");
+            FirebaseFirestore mFirestore = FirebaseFirestore.getInstance();
+            DocumentReference document = mFirestore.collection("cities").document("Athens");
+            Map m = new HashMap<>();
+            m.put("name","Athens");
+            m.put("Speed","150");
+            document.set(m);
+
             // Repeat this the same runnable code block again another 2 seconds
             // 'this' is referencing the Runnable object
             handler.postDelayed(this, 2000);
