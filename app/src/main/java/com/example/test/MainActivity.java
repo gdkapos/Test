@@ -4,15 +4,26 @@ package com.example.test;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Handler;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
 
     private long delayMillis = 2000;
     private int beepDuration = 500;
+    private int directionDifferenceThreshold = 30;
+    private int joinPossibilityThreshold = 50;
 
     ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
 
@@ -28,16 +41,13 @@ public class MainActivity extends AppCompatActivity {
     private Runnable runnableCode = new Runnable() {
         @Override
         public void run() {
-            // Beep
-            //toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,beepDuration);
-            toneGen1.startTone(ToneGenerator.TONE_DTMF_0,beepDuration);
-
             // Get dieleusi info
+            String country = "Greece";
             String city = "Athens";
             long junction = 1;
             long time = Calendar.getInstance().getTimeInMillis();
-            int possibility = 85;
-            int direction = 345;
+            final int possibility = 85;
+            final int direction = 345;
             Dieleusi dieleusi = new Dieleusi(junction,
                     time,
                     possibility,
@@ -45,10 +55,39 @@ public class MainActivity extends AppCompatActivity {
 
             // Store it to Firestore
             FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-            CollectionReference cityCollection = firestore.collection(city);
-            DocumentReference junctionDocument = cityCollection.document(""+junction);
-            CollectionReference dieleusiCollection = junctionDocument.collection(time + "_" + direction);
-            dieleusiCollection.document().set(dieleusi);
+            CollectionReference countryCollection = firestore.collection(country);
+            DocumentReference cityDocument = countryCollection.document(city);
+            CollectionReference junctionCollection = cityDocument.collection(""+junction);
+            junctionCollection.document(time + "_" + direction).set(dieleusi);
+
+            // Ερώτημα για σύγκρουση
+            Query query = junctionCollection.whereGreaterThan("time", time - 1000);
+            query.get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            //Map m = document.getData();
+                            long dir = document.getLong("direction");
+
+                            long dirDiff = direction - dir;
+                            if (dirDiff < 0) {
+                                dirDiff = -dirDiff;
+                            }
+
+                            if (dirDiff > directionDifferenceThreshold) {
+                                long pos = document.getLong("possibility");
+                                long pp = pos * possibility / 100;
+                                if (pp >= joinPossibilityThreshold) {
+                                    // Beep
+                                    //toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,beepDuration);
+                                    toneGen1.startTone(ToneGenerator.TONE_DTMF_0,beepDuration);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
 
             // Καθυστέρηση
             handler.postDelayed(this, delayMillis);
