@@ -8,20 +8,19 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.os.Bundle;
 
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.model.Document;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
 
     // Create the Handler object (on the main thread by default)
     Handler handler = new Handler();
+
+    private long delayMillis = 2000;
+    private int beepDuration = 500;
 
     ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
 
@@ -29,24 +28,30 @@ public class MainActivity extends AppCompatActivity {
     private Runnable runnableCode = new Runnable() {
         @Override
         public void run() {
-            // Do something here on the main thread
-            //toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,500);
-            toneGen1.startTone(ToneGenerator.TONE_DTMF_0,500);
-            // Write a message to the database
-            //FirebaseDatabase database = FirebaseDatabase.getInstance();
-            //DatabaseReference myRef = database.getReference();
-            //myRef.setValue("Hello, World!");
+            // Beep
+            //toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,beepDuration);
+            toneGen1.startTone(ToneGenerator.TONE_DTMF_0,beepDuration);
 
-            FirebaseFirestore mFirestore = FirebaseFirestore.getInstance();
-            DocumentReference document = mFirestore.collection("cities").document("Athens");
-            Map m = new HashMap<>();
-            m.put("name","Athens");
-            m.put("Speed","150");
-            document.set(m);
+            // Get dieleusi info
+            String city = "Athens";
+            long junction = 1;
+            long time = Calendar.getInstance().getTimeInMillis();
+            int possibility = 85;
+            int direction = 345;
+            Dieleusi dieleusi = new Dieleusi(junction,
+                    time,
+                    possibility,
+                    direction);
 
-            // Repeat this the same runnable code block again another 2 seconds
-            // 'this' is referencing the Runnable object
-            handler.postDelayed(this, 2000);
+            // Store it to Firestore
+            FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+            CollectionReference cityCollection = firestore.collection(city);
+            DocumentReference junctionDocument = cityCollection.document(""+junction);
+            CollectionReference dieleusiCollection = junctionDocument.collection(time + "_" + direction);
+            dieleusiCollection.document().set(dieleusi);
+
+            // Καθυστέρηση
+            handler.postDelayed(this, delayMillis);
         }
     };
 
