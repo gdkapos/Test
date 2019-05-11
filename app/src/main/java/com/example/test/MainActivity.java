@@ -30,8 +30,9 @@ public class MainActivity extends AppCompatActivity {
     // Create the Handler object (on the main thread by default)
     Handler handler = new Handler();
 
-    private long delayMillis = 2000;
+    private long delayMillis = 1000;
     private int beepDuration = 500;
+    private int possibilityThreshold = 80;
     private int directionDifferenceThreshold = 30;
     private int joinPossibilityThreshold = 50;
 
@@ -44,10 +45,15 @@ public class MainActivity extends AppCompatActivity {
             // Get dieleusi info
             String country = "Greece";
             String city = "Athens";
-            long junction = 1;
+            long junction = Long.valueOf(getString(R.string.junction));
+            final int direction = 345;
             long time = Calendar.getInstance().getTimeInMillis();
             final int possibility = 85;
-            final int direction = 345;
+
+            if (possibility < possibilityThreshold) {
+                return;
+            }
+
             Dieleusi dieleusi = new Dieleusi(junction,
                     time,
                     possibility,
